@@ -35,4 +35,4 @@ contract Paymaster {
         require(success, "Royalty payout failed");
         emit RoyaltiesPaid(artist, amount);
     }
-}
+} 
