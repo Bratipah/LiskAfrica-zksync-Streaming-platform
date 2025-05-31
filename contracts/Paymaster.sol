@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "./SongNFT.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -20,7 +20,8 @@ contract Paymaster {
 
     function accumulateRoyalties(uint256 tokenId) external payable {
         require(msg.value > 0, "No payment sent");
-        (, address artist, , , , ) = songNFT.getInfo(msg.sender);
+        SongNFT.NFTInfo memory nftInfo = songNFT.getInfo(msg.sender);
+        address artist = nftInfo.artist;
         uint256 royaltyAmount = msg.value.mul(songNFT.ROYALTY_PERCENTAGE()).div(100);
         artistRoyalties[artist] = artistRoyalties[artist].add(royaltyAmount);
         emit RoyaltiesAccumulated(artist, royaltyAmount);
