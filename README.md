@@ -15,12 +15,12 @@ zkTune allows musicians to upload their songs as NFTs on the blockchain. When us
 
 ## Smart Contracts
 
-### zkTune.sol (Main Contract)
+zkTune.sol (Main Contract)
 - Manages artists, users, and songs
 - Handles song streaming and NFT purchases
 - Tracks platform statistics
 
-### SongNFT.sol (Individual Song Contract)
+SongNFT.sol (Individual Song Contract)
 - One contract per song
 - Handles NFT minting and royalty distribution
 - Stores song metadata and pricing
