@@ -1,128 +1,210 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// An extension of the ERC721 standard to manage token URIs.
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-// Provides basic access control mechanisms, allowing only the owner to execute certain functions.
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// Provides safe mathematical operations to prevent overflow and underflow errors.
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-// SongNFT contract declaration
-contract SongNFT is ERC721URIStorage, Ownable {
-    // Importing SafeMath library
-    using SafeMath for uint256;
+contract SongNFT is ERC721, Ownable, ReentrancyGuard {
+    // Struct to store NFT metadata
+    struct NFTMetadata {
+        string audioURI;
+        string coverURI;
+        address artist;
+        uint256 price;
+        uint256 mintedAt;
+    }
 
-    // Tracks the current token ID
+    // Private variable to track the current token ID
     uint256 private _currentTokenId;
-    // Price of the NFT
+    
+    // Price to mint the NFT
     uint256 public nftPrice;
-    // Address of the artist
+    
+    // Artist who created this song
     address public artist;
-    // URI of the audio file
-    string public audioURI;
-    // Accumulated royalties
-    uint256 public royaltyBalance;
-    // URI of the cover image
-    string public coverURI;
+    
+    // Base URI for metadata
+    string private _baseTokenURI;
+    
+    // Mapping from token ID to NFT metadata
+    mapping(uint256 => NFTMetadata) public tokenMetadata;
+    
+    // Total supply of NFTs
+    uint256 public totalSupply;
 
-    // Defining the struct NFTInfo to store comprehensive information of the NFT
-    struct NFTInfo {
-        uint256 nftPrice;           // Price of the NFT
-        address artist;             // Address of the artist
-        string audioURI;            // URI of the audio file
-        string coverURI;            // URI of the cover image
-        uint256 royaltyBalance;     // Balance of royalties
-        uint256 currentTokenId;     // Current token ID
-    } 
+    // Events
+    event NFTMinted(address indexed to, uint256 indexed tokenId, uint256 price);
+    event PriceUpdated(uint256 oldPrice, uint256 newPrice);
+    event WithdrawalMade(address indexed artist, uint256 amount);
 
-    // Declaring a constant representing the royalty percentage (30%) on NFT minting
-    uint256 public constant ROYALTY_PERCENTAGE = 30;
+    // Constructor to initialize the NFT contract
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint256 _nftPrice,
+        string memory _audioURI,
+        address _artist,
+        string memory _coverURI
+    ) ERC721(_name, _symbol) {
+        nftPrice = _nftPrice;
+        artist = _artist;
+        _currentTokenId = 0;
+        totalSupply = 0;
+        
+        // Transfer ownership to the artist
+        _transferOwnership(_artist);
+        
+        // Store the initial metadata template
+        tokenMetadata[0] = NFTMetadata({
+            audioURI: _audioURI,
+            coverURI: _coverURI,
+            artist: _artist,
+            price: _nftPrice,
+            mintedAt: block.timestamp
+        });
+    }
 
-    // Triggered when a new NFT is minted
-    event NFTMinted(uint256 indexed tokenId, address indexed buyer, uint256 price);
-    // Triggered when royalties are collected
-    event RoyaltyCollected(uint256 indexed tokenId, uint256 amount);
-    // Triggered when royalties are paid out to the artist
-    event RoyaltyPaid(address indexed artist, uint256 amount);
-
-    // The modifier restricts function access to users who own at least one NFT
-    modifier onlyMintedUser(address user) {
-        require(YOUR_CODE_GOES_HERE > 0,"Don't own the NFT"); // ASSIGNMENT #1
+    // Modifier to ensure only the artist can perform certain actions
+    modifier onlyArtist() {
+        require(msg.sender == artist, "Only artist can perform this action");
         _;
     }
 
-    // The constructor will initialize the state variables using the input parameters
-    constructor(string memory _name, string memory _symbol, uint256 _nftPrice, 
-    string memory _audioURI, address _artist, string memory _coverURI) ERC721(_name, _symbol) {
-        // Initialize the state variables using the input parameters
-        // Fill in with appropriate parameters | ASSIGNMENT #2
-        nftPrice = YOUR_CODE_GOES_HERE; 
-        audioURI = YOUR_CODE_GOES_HERE; 
-        coverURI = YOUR_CODE_GOES_HERE; 
-        artist = YOUR_CODE_GOES_HERE;
-        _currentTokenId = 0;
-    }
+    // Function to mint NFT (payable)
+    function mintNFT(address _to) external payable nonReentrant {
+        require(msg.value >= nftPrice, "Insufficient payment");
+        require(_to != address(0), "Cannot mint to zero address");
 
-    // Mint the new NFT
-    function mintNFT(address _to) external payable returns (uint256) {
-		// Ensures the payment is sufficient using the NFT price
-        // Fill in with appropriate variable | ASSIGNMENT #3
-        require(msg.value >= YOUR_CODE_GOES_HERE, "Insufficient payment"); 
+        _currentTokenId++; // Increment current token ID
+        uint256 newTokenId = _currentTokenId; // FIXED: Added semicolon
 
-		// Increment the token ID and save it to newTokenId here
-        YOUR_CODE_GOES_HERE // ASSIGNMENT #4
-        uint256 newTokenId = _currentTokenId;
-
-		// Calculate the royalty amount
-        uint256 royaltyAmount = msg.value.mul(ROYALTY_PERCENTAGE).div(100);
-        
-        // Update the royalty balance
-        royaltyBalance = royaltyBalance.add(royaltyAmount);
-
-		// Safely mints the new token
+        // Mint the NFT
         _safeMint(_to, newTokenId);
         
-        // Sets the token URI
-        _setTokenURI(newTokenId, audioURI);
-
-        // Emits an event for royalty collection
-        emit YOUR_CODE_GOES_HERE(newTokenId, royaltyAmount); // Fill in with appropriate event | ASSIGNMENT #5
-        // Emits an event for NFT minting
-        emit YOUR_CODE_GOES_HERE(newTokenId, _to, msg.value); // Fill in with appropriate event | ASSIGNMENT #6
-
-		//  Return the new token ID
-        return YOUR_CODE_GOES_HERE; // Fill in with appropriate variable | ASSIGNMENT #7
-    }
-
-    // payRoyalties function pays out the accumulated royalties to the artist
-    function payRoyalties() external {
-		// Retrieves the royalty balance
-        uint256 amount = royaltyBalance;
-        // Reset the royalty balance
-        royaltyBalance = YOUR_CODE_GOES_HERE; // Fill in with appropriate number | ASSIGNMENT #8
-
-		// Transfers the royalty amount to the artist
-        (bool success, ) = payable(artist).call{value: amount}("");
-        // Ensures the transfer was successful
-        require(YOUR_CODE_GOES_HERE, "Royalty payout failed"); // Fill in with appropriate variable | ASSIGNMENT #9
-
-		// Emits an event for royalty payment
-        emit YOUR_CODE_GOES_HERE(artist, amount); // Fill in with appropriate event | ASSIGNMENT #10
-    }
-
-    // Retrieves comprehensive information about the NFT
-    function getInfo(address user) external view onlyMintedUser(user) returns (NFTInfo memory)  {
-		// Returns an NFTInfo struct with detailed information.
-        return NFTInfo({
-            // Initializing the NFTInfo fields here using the state variables
-            // Fill in with appropriate state variable | ASSIGNMENT #11
-            nftPrice: nftPrice, 
-            artist: YOUR_CODE_GOES_HERE,
-            audioURI: YOUR_CODE_GOES_HERE,
-            coverURI: YOUR_CODE_GOES_HERE, 
-            royaltyBalance: YOUR_CODE_GOES_HERE,
-            currentTokenId: YOUR_CODE_GOES_HERE 
+        // Store metadata for this token
+        tokenMetadata[newTokenId] = NFTMetadata({
+            audioURI: tokenMetadata[0].audioURI,
+            coverURI: tokenMetadata[0].coverURI,
+            artist: artist,
+            price: nftPrice,
+            mintedAt: block.timestamp
         });
+
+        totalSupply++;
+
+        emit NFTMinted(_to, newTokenId, msg.value);
+
+        // Refund excess payment
+        if (msg.value > nftPrice) {
+            payable(msg.sender).transfer(msg.value - nftPrice);
+        }
     }
+
+    // Function to update NFT price (only artist)
+    function updatePrice(uint256 _newPrice) external onlyArtist {
+        require(_newPrice > 0, "Price must be greater than 0");
+        uint256 oldPrice = nftPrice;
+        nftPrice = _newPrice;
+        emit PriceUpdated(oldPrice, _newPrice);
+    }
+
+    // Function for artist to withdraw earnings
+    function withdraw() external onlyArtist nonReentrant {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+        
+        payable(artist).transfer(balance);
+        emit WithdrawalMade(artist, balance);
+    }
+
+    // Function to get NFT metadata
+    function getTokenMetadata(uint256 _tokenId) external view returns (NFTMetadata memory) {
+        require(_exists(_tokenId), "Token does not exist");
+        return tokenMetadata[_tokenId];
+    }
+
+    // Function to get audio URI for a token
+    function getAudioURI(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId), "Token does not exist");
+        return tokenMetadata[_tokenId].audioURI;
+    }
+
+    // Function to get cover URI for a token
+    function getCoverURI(uint256 _tokenId) external view returns (string memory) {
+        require(_exists(_tokenId), "Token does not exist");
+        return tokenMetadata[_tokenId].coverURI;
+    }
+
+    // Override tokenURI to return custom metadata
+    function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
+        require(_exists(_tokenId), "Token does not exist");
+        
+        // You can customize this to return proper JSON metadata
+        return string(abi.encodePacked(_baseTokenURI, toString(_tokenId)));
+    }
+
+    // Function to set base URI (only artist)
+    function setBaseURI(string memory _baseTokenURI) external onlyArtist {
+        _baseTokenURI = _baseTokenURI;
+    }
+
+    // Function to check if a token exists
+    function exists(uint256 _tokenId) external view returns (bool) {
+        return _exists(_tokenId);
+    }
+
+    // Function to get total number of tokens owned by an address
+    function balanceOfOwner(address _owner) external view returns (uint256) {
+        return balanceOf(_owner);
+    }
+
+    // Function to get all token IDs owned by an address
+    function tokensOfOwner(address _owner) external view returns (uint256[] memory) {
+        uint256 tokenCount = balanceOf(_owner);
+        uint256[] memory tokenIds = new uint256[](tokenCount);
+        uint256 index = 0;
+
+        for (uint256 i = 1; i <= _currentTokenId; i++) {
+            if (_exists(i) && ownerOf(i) == _owner) {
+                tokenIds[index] = i;
+                index++;
+            }
+        }
+
+        return tokenIds;
+    }
+
+    // Utility function to convert uint to string
+    function toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    // Function to get current token ID
+    function getCurrentTokenId() external view returns (uint256) {
+        return _currentTokenId;
+    }
+
+    // Function to get contract balance
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // Fallback function to receive Ether
+    receive() external payable {}
 }

@@ -95,19 +95,19 @@ contract zkTune is Ownable {
     // Function to register a new artist
     function registerArtist(string memory _name, string memory _profileURI) external {
         // Check if the artist is already registered
-        // ASSIGNMENT #1
-        YOUR_CODE_GOES_HERE(bytes(artists[msg.sender].name).length == 0, "Artist already registered");
+        // ASSIGNMENT #1 - FIXED
+        require(bytes(artists[msg.sender].name).length == 0, "Artist already registered");
         _currentArtistId++; // Increment current artist ID
         uint256 newArtistId = _currentArtistId; // Assign new artist ID
 
         // Store artist details in the artists mapping
         artists[msg.sender] = Artist(_name, _profileURI);
         // Store artist details in the artistID mapping
-        // ASSIGNMENT #2
-        artistID[newArtistId] = Artist(YOUR_CODE_GOES_HERE, _profileURI);
+        // ASSIGNMENT #2 - FIXED
+        artistID[newArtistId] = Artist(_name, _profileURI);
 
-        // ASSIGNMENT #3
-        artistAddresses.push(YOUR_CODE_GOES_HERE); // Add artist address to the array
+        // ASSIGNMENT #3 - FIXED
+        artistAddresses.push(msg.sender); // Add artist address to the array
         totalArtists++; // Increment total artists
 
         emit ArtistRegistered(msg.sender, _name); // Emit ArtistRegistered event
@@ -119,11 +119,10 @@ contract zkTune is Ownable {
         require(bytes(users[msg.sender].name).length == 0, "User already registered");
         // Store user details in the users mapping
         users[msg.sender] = User(_name, _profileURI);
+        totalUsers++; // Increment total users
 
-        // ASSIGNMENT #4
-        YOUR_CODE_GOES_HERE // Increment total users
-
-        emit UserRegistered(msg.sender, _name); // Emit UserRegistered event
+        emit UserRegistered(msg.sender, _name); 
+        // Emit UserRegistered event
     }
 
     // Function to add a new song
@@ -135,15 +134,15 @@ contract zkTune is Ownable {
         SongNFT songNFT = new SongNFT(_title, "ZKT", _nftPrice, _audioURI, msg.sender, _coverURI);
 
         // Store song details in the songs mapping
-        // ASSIGNMENT #5
-        songs[newSongId] = Song(YOUR_CODE_GOES_HERE, msg.sender, _title, _audioURI, _coverURI, 0, address(songNFT));
+        // ASSIGNMENT #5 - FIXED
+        songs[newSongId] = Song(newSongId, msg.sender, _title, _audioURI, _coverURI, 0, address(songNFT));
         songIds.push(newSongId); // Add song ID to the array
 
         artistSongs[msg.sender].push(newSongId); // Add song ID to the artist's songs
         totalSongs++; // Increment total songs
 
-        // ASSIGNMENT #6
-        emit SongAdded(newSongId, msg.sender, YOUR_CODE_GOES_HERE); // Emit SongAdded event
+        // ASSIGNMENT #6 - FIXED
+        emit SongAdded(newSongId, msg.sender, _title); // Emit SongAdded event
     }
 
     // Function to stream a song
@@ -153,30 +152,30 @@ contract zkTune is Ownable {
 
         if (userHasNFT[_songId][msg.sender]) {
             // If the user already owns the NFT, return the audio URI
-            // ASSIGNMENT #7
-            return song.YOUR_CODE_GOES_HERE;
+            // ASSIGNMENT #7 - FIXED
+            return song.audioURI;
         } else {
             // Mint a new NFT for the user
             songNFT.mintNFT{value: msg.value}(msg.sender);
             userHasNFT[_songId][msg.sender] = true; // Mark that the user owns the NFT
 
-            // ASSIGNMENT #8
-            YOUR_CODE_GOES_HERE // Increment stream count
+            // ASSIGNMENT #8 - FIXED
+            song.streamCount++; // Increment stream count
             userStreams[msg.sender].push(_songId); // Add song ID to the user's streams
 
             emit SongStreamed(_songId, msg.sender); // Emit SongStreamed event
 
             // Return the audio URI
-            // ASSIGNMENT #9
-            return YOUR_CODE_GOES_HERE;
+            // ASSIGNMENT #9 - FIXED
+            return song.audioURI;
         }
     }
 
     // Function to get all songs
     function getAllSongs() external view returns (Song[] memory) {
         Song[] memory allSongs = new Song[](songIds.length); // Create an array of Song structs
-        // ASSIGNMENT #10
-        for (uint256 i = 0; i < YOUR_CODE_GOES_HERE; i++) {
+        // ASSIGNMENT #10 - FIXED
+        for (uint256 i = 0; i < songIds.length; i++) {
             allSongs[i] = songs[songIds[i]]; // Populate the array with songs
         }
         return allSongs; // Return the array
@@ -197,8 +196,8 @@ contract zkTune is Ownable {
         Song[] memory artistSongsArray = new Song[](artistSongIds.length); // Create an array of Song structs
 
         for (uint256 i = 0; i < artistSongIds.length; i++) {
-            // ASSIGNMENT #11
-            artistSongsArray[i] = YOUR_CODE_GOES_HERE; // Populate the array with the artist's songs
+            // ASSIGNMENT #11 - FIXED
+            artistSongsArray[i] = songs[artistSongIds[i]]; // Populate the array with the artist's songs
         }
 
         return artistSongsArray; // Return the array
@@ -207,13 +206,42 @@ contract zkTune is Ownable {
     // Function to get songs streamed by a specific user
     function getSongsStreamedByUser(address _user) external view returns (Song[] memory) {
         uint256[] memory userStreamedSongIds = userStreams[_user]; // Get the user's streamed song IDs
-        // ASSIGNMENT #12
-        Song[] memory YOUR_CODE_GOES_HERE = new Song[](userStreamedSongIds.length); // Create an array of Song structs
+        // ASSIGNMENT #12 - FIXED
+        Song[] memory userStreamedSongs = new Song[](userStreamedSongIds.length); // Create an array of Song structs
 
         for (uint256 i = 0; i < userStreamedSongIds.length; i++) {
             userStreamedSongs[i] = songs[userStreamedSongIds[i]]; // Populate the array with the user's streamed songs
         }
 
         return userStreamedSongs; // Return the array
+    }
+
+    // Additional utility functions
+
+    // Function to get total number of streams for a song
+    function getSongStreamCount(uint256 _songId) external view songExists(_songId) returns (uint256) {
+        return songs[_songId].streamCount;
+    }
+
+    // Function to check if user owns a specific song NFT
+    function checkUserOwnsNFT(uint256 _songId, address _user) external view returns (bool) {
+        return userHasNFT[_songId][_user];
+    }
+
+    // Function to get artist information by address
+    function getArtist(address _artistAddress) external view returns (Artist memory) {
+        require(bytes(artists[_artistAddress].name).length > 0, "Artist not found");
+        return artists[_artistAddress];
+    }
+
+    // Function to get user information by address
+    function getUser(address _userAddress) external view returns (User memory) {
+        require(bytes(users[_userAddress].name).length > 0, "User not found");
+        return users[_userAddress];
+    }
+
+    // Function to get song information by ID
+    function getSong(uint256 _songId) external view songExists(_songId) returns (Song memory) {
+        return songs[_songId];
     }
 }
