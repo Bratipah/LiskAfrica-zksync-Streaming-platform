@@ -1,5 +1,6 @@
+import * as dotenv from "dotenv";
+dotenv.config();
 import { HardhatUserConfig } from "hardhat/config";
-
 import "@matterlabs/hardhat-zksync";
 
 const config: HardhatUserConfig = {
@@ -10,28 +11,33 @@ const config: HardhatUserConfig = {
       ethNetwork: "sepolia",
       zksync: true,
       verifyURL: "https://explorer.sepolia.era.zksync.dev/contract_verification",
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""], // Use .env
     },
     zkSyncMainnet: {
       url: "https://mainnet.era.zksync.io",
       ethNetwork: "mainnet",
       zksync: true,
       verifyURL: "https://zksync2-mainnet-explorer.zksync.io/contract_verification",
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
     },
-    zkSyncGoerliTestnet: { // deprecated network
+    zkSyncGoerliTestnet: {
       url: "https://testnet.era.zksync.dev",
       ethNetwork: "goerli",
       zksync: true,
       verifyURL: "https://zksync2-testnet-explorer.zksync.dev/contract_verification",
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
     },
     dockerizedNode: {
       url: "http://localhost:3050",
       ethNetwork: "http://localhost:8545",
       zksync: true,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
     },
     inMemoryNode: {
       url: "http://127.0.0.1:8011",
-      ethNetwork: "localhost", // in-memory node doesn't support eth node; removing this line will cause an error
+      ethNetwork: "localhost",
       zksync: true,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY || ""],
     },
     hardhat: {
       zksync: true,
@@ -39,13 +45,10 @@ const config: HardhatUserConfig = {
   },
   zksolc: {
     version: "latest",
-    settings: {
-      // find all available options in the official documentation
-      // https://era.zksync.io/docs/tools/hardhat/hardhat-zksync-solc.html#configuration
-    },
+    settings: {},
   },
   solidity: {
-    version: "0.8.17",
+    version: "0.8.20", // Matches contracts
   },
 };
 
